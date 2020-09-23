@@ -877,6 +877,7 @@ class Client(object):
         idx = 0
         while True:
             # fetch the klines from start_ts up to max 500 entries or the end_ts if set
+            print(self.req_weight_1m,self.orders_1s,self.orders_1d)
             temp_data = self.get_klines(
                 symbol=symbol,
                 interval=interval,
@@ -891,6 +892,7 @@ class Client(object):
 
             # append this loops data to our output data
             output_data += temp_data
+            
 
             # set our start timestamp using the last value in the array
             start_ts = temp_data[-1][0]

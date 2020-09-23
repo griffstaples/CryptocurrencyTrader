@@ -1,3 +1,5 @@
 {
-    "python.pythonPath": "/usr/local/bin/python3"
+    "python.pythonPath": "/usr/local/bin/python3",
+    "workbench.colorTheme": "Solarized Dark",
+    "python.linting.pylintPath": "./"
 }

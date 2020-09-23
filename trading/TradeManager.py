@@ -1,7 +1,6 @@
 import os, sys
 sys.path.append(os.path.abspath("../config/"))
 
-from config_ignore import login
 from binance.client import Client
 
 from Trader import Trader
@@ -12,9 +11,12 @@ class TradeManager():
     def __init__(self, def_options, *args, **kwargs):
         # Initialize Trade Manager
 
+        api_key = os.environ["binance_api"]
+        api_secret = os.environ["binance_secret"]
+
         # Initialize List of Traders
         self.traders = []
-        self.client = Client(login['BINANCE_API_KEY'],login['BINANCE_API_SECRET'])
+        self.client = Client(api_key,api_secret)
         
         self.statistics = {}
         self.orders_per_sec = 0
