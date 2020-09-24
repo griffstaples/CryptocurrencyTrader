@@ -8,6 +8,9 @@ from keras.models import model_from_json
 from keras import Input, Model, optimizers
 from keras.layers import Dense
 import json
+import tensorflow as tf
+tf.config.experimental_run_functions_eagerly(True)
+import keras
 
 
 sys.path.append(os.path.abspath("./"))
@@ -47,40 +50,71 @@ class SimpleNetworkTrader(Trader):
         p = np.random.permutation(len(answers))
         answers = answers[p]
         formatted_input = formatted_input[p]
+        last_close = formatted_input[:,-1]
 
         # build network structure
         net_input = Input(shape=(timeframe,))
+        y_true_input = Input(shape=(1,))
+        last_close_input = Input(shape=(1,))
+
         hidden = Dense(timeframe,activation="relu",kernel_initializer="random_uniform")(net_input)
         output = Dense(1,activation='linear',kernel_initializer="random_uniform")(hidden)
-        model = Model(net_input,output)
+        model = Model([net_input,y_true_input,last_close_input],output)
 
         #define custom loss function
-        def custom_loss_wrapper(net_input):
-            def custom_loss(y_true, y_pred):
-                if(y_true>=net_input[-1]):
-                    #stock is going up
-                    if(y_pred>=y_true):
-                        #rewards as I would have bought
-                        return 0.0
-                    else:
-                        #punish I was wouldn't have made as much
-                        return y_pred-y_true
-                else:
-                    #stock is going down
-                    if(y_pred>=y_true):
-                        #punish as I would have lost more by holding on too much
-                        return y_pred-y_true
-                    else:
-                        #reward as I would have sold more stock
-                        return 0.0
-            return custom_loss
+        # def custom_loss_wrapper(net_input):
+        def custom_loss(y_true, y_pred, last_close):
+            cond1 = tf.math.greater_equal(y_true,last_close)
+            cond1 = tf.cast(cond1,dtype=tf.float32)
+            cond2 = tf.math.less(y_pred,y_true)
+            cond2 = tf.cast(cond2,dtype=tf.float32)
+
+            loss1 = tf.math.multiply(cond1,cond2)
+            loss1 = tf.math.multiply(cond2,y_pred-y_true)
+
+            one = tf.constant([1.0],shape=(1,),dtype=tf.float32)
+
+            cond1 = tf.math.subtract(one,cond1)
+            cond2 = tf.math.subtract(one,cond2)
+
+            loss2 = tf.math.multiply(cond1,cond2)
+            loss2 = tf.math.multiply(cond2,y_pred-y_true)
+
+            total_loss = tf.math.add(loss2,loss1)
+            print(cond1)
+            print(cond2)
+            print(loss1)
+            print(loss2)
+            print(one)
+            print(total_loss)
+            return total_loss
+            
+
+            # if(y_true>=last_close):
+            #     #stock is going up
+            #     if(y_pred>=y_true):
+            #         #rewards as I would have bought
+            #         return y_pred-y_pred
+            #     else:
+            #         #punish I was wouldn't have made as much
+            #         return y_pred-y_true
+            # else:
+            #     #stock is going down
+            #     if(y_pred>=y_true):
+            #         #punish as I would have lost more by holding on too much
+            #         return y_pred-y_true
+            #     else:
+            #         #reward as I would have sold more stock
+            #         return y_pred-y_pred
+            # return custom_loss
 
         # add training method and metrics
-        sgd = optimizers.SGD()
-        model.compile(optimizer=sgd, loss=custom_loss_wrapper(net_input),metrics=["accuracy"])
+        mse = optimizers.Adam()
+        model.add_loss(custom_loss(y_true_input,output,last_close_input))
+        model.compile(optimizer=mse,metrics=["accuracy"])
 
         # fit model
-        fit = model.fit(x=formatted_input,y=answers, validation_split=0.2, epochs=200, batch_size=32)
+        fit = model.fit((formatted_input,answers,last_close), answers, validation_split=0.2, epochs=200, batch_size=32)
         
         # save network stats
         self.network_stats = {}
@@ -195,6 +229,6 @@ if __name__ == "__main__":
 
     # simple.DataManager.update_historical_data("../data/ETHUSDT_1mtest_saved.csv",limit=1000)
 
-    simple.train_network("../data/ETHUSDT_1mtest_saved.csv","./networks/simple_network")
+    simple.train_network("./data/ETHUSDT_1mtest_saved.csv","./networks/simple_network")
 
 

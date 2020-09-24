@@ -1,6 +1,7 @@
 import sys, os
 
 sys.path.append(os.path.abspath("../data_management/"))
+sys.path.append(os.path.abspath("./data_management/"))
 
 from DataManager import DataManager
 
