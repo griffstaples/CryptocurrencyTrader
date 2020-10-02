@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Author: Griffin Staples
+Date Created: Fri Oct 02 2020
+License:
+The MIT License (MIT)
+Copyright (c) 2020 Griffin Staples
+
+"""
+
 import sys, os
 import numpy as np
 import time
@@ -46,7 +57,7 @@ class Trader(object):
         # Print out important exchange info
         print("{} symbol exchange info:".format(self.symbol))
         print("Cost of {} in {}: ".format(symbol1,symbol2),self.current_price)
-        print("Min trans. cost in BKRW", self.min_notional)
+        print("Min trans. cost in $BKRW", self.min_notional)
         print("Min trans. cost in $ETH: ", self.min_amount)
         print("Min trans. cost in $USD: ", min_in_usd)
 
@@ -59,6 +70,10 @@ class Trader(object):
 
     def __del__(self, *args, **kwargs):
         #class destructor
+
+        pass
+
+    def evaluate_trader(self, *args, **kwargs):
 
         pass
     

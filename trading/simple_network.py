@@ -1,4 +1,16 @@
-import sys,os
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Author: Griffin Staples
+Date Created: Fri Oct 02 2020
+License:
+The MIT License (MIT)
+Copyright (c) 2020 Griffin Staples
+
+"""
+
+import sys
+import os
 sys.path.append(os.path.abspath("../data_management/"))
 sys.path.append(os.path.abspath("../local_packages/python_binance_master/binance/"))
 sys.path.append(os.path.abspath("./"))
@@ -63,7 +75,7 @@ class SimpleNetworkTrader(Trader):
 
 
     
-    def evaluate_network(self, filepath, network_path, *args , **kwargs):
+    def evaluate_trader(self, filepath, network_path, *args , **kwargs):
 
         #get data
         now = int(time.time()//60*60*1000)
@@ -154,7 +166,7 @@ class SimpleNetworkTrader(Trader):
 
         #compare price chart with earnings (scaled)
         plt.figure(1)
-        plt.plot(total_earnings/np.max(total_earnings)*np.max(answers),color="blue")
+        plt.plot(total_earnings/np.max(abs(total_earnings))*np.max(answers),color="blue")
         plt.plot(answers,color="red")
         plt.legend(["Earnings (scaled)", "Price Chart"])
         plt.xlabel("Minutes from start time")
@@ -175,7 +187,7 @@ class SimpleNetworkTrader(Trader):
             open_orders = self.client.get_open_orders(symbol=self.symbol)
 
             #cancel old orders
-            open_orders = self.cancel_old_orders(open_orders,1000*60*7)
+            open_orders = self.cancel_old_orders(open_orders,1000*60*10)
 
             #get current balances in said coins
             symbol1_balance, symbol2_balance = self._get_asset_balance()
@@ -209,9 +221,11 @@ class SimpleNetworkTrader(Trader):
             print("{} Balance: {}".format(symbol1,symbol1_balance))
             print("{} Balance: {}".format(symbol2,symbol2_balance))
 
-    def run(self, filepath, network_path, *args, **kwargs):
+    def run(self, *args, **kwargs):
         #run trading algorithm
 
+        filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
+        network_path = "./trading/networks/simple_network_{}".format(self.symbol)
         timeframe = 10
         commission = 0.001
         threshold = 1000
@@ -219,8 +233,7 @@ class SimpleNetworkTrader(Trader):
         #create/update data file
         now = int((time.time()//60)*60*1000)
         start = int(now-(timeframe-1)*60000)
-        print(now)
-        print(start)
+        
         if(os.path.exists(filepath)):
             self.DataManager.update_historical_data(filepath.format(self.symbol))
         else:
@@ -249,15 +262,16 @@ class SimpleNetworkTrader(Trader):
         }
         commission_amount = commission*order_object["amount"]
 
+        print(order_object)
         if(prediction>last_close+commission_amount+threshold):
+            print("{}: Buying".format(self.name))
             # order_object["action"] = "BUY"
             # self.place_order(order_object)
-            print(order_object)
 
         elif(prediction<last_close-commission_amount-threshold):
+            print("{}: Selling".format(self.name))
             # order_object["action"] = "SELL"
             # self.place_order(order_object)
-            print(order_object)
         
         else:
             print("{}: No order placed".format(self.name))
@@ -308,5 +322,5 @@ if __name__ == "__main__":
     
     # simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
     # simple.train_network("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
-    simple.evaluate_network("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
-    # simple.run("../data/{}_1m_run_data.csv".format(symbol),"./trading/networks/simple_network_{}".format(symbol))
+    simple.evaluate_trader("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
+    simple.run()

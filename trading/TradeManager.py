@@ -1,10 +1,21 @@
-import os, sys
-sys.path.append(os.path.abspath("../config/"))
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Author: Griffin Staples
+Date Created: Fri Oct 02 2020
+License:
+The MIT License (MIT)
+Copyright (c) 2020 Griffin Staples
 
-from binance.client import Client
+"""
 
+import sys
+import os
+
+from local_packages.python_binance_master.binance.client import Client
 from Trader import Trader
 from simple_network import SimpleNetworkTrader
+from simple_linear import SimpleLinearTrader
 
 
 class TradeManager():
@@ -25,7 +36,9 @@ class TradeManager():
         # Add trader
         if(self._trader_exists(name) == None):
             if(method=="Simple Network"):
-                trader = SimpleNetworkTrader(name, symbol1, symbol2, save_data, auto_train)
+                trader = SimpleNetworkTrader(self.client, name, symbol1, symbol2, save_data, auto_train)
+            elif(method=="Simple Linear"):
+                trader = SimpleLinearTrader(self.client, name, symbol1, symbol2, save_data, auto_train)
             else:
                 raise Exception("No method of type {} found for trader".format(method))
             self.traders.append(trader)
@@ -46,7 +59,7 @@ class TradeManager():
             print("Trader not found")
 
     def run_traders(self, *args, **kwargs):
-        for trader in traders:
+        for trader in self.traders:
             trader.run()
 
     def _trader_exists(self, name, *args, **kwargs):

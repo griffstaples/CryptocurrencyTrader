@@ -1,8 +1,8 @@
 {
     "start_unix_day": 1601592630.648737,
-    "start_unix_min": 1601653490.605881,
-    "start_unix_10sec": 1601653490.605881,
-    "request_weight_1m": 6,
+    "start_unix_min": 1601659184.112702,
+    "start_unix_10sec": 1601659227.6549041,
+    "request_weight_1m": 7,
     "orders_10s": 0,
     "orders_1d": 0
 }

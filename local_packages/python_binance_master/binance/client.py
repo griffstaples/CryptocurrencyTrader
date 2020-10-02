@@ -908,7 +908,8 @@ class Client(object):
         idx = 0
         while True:
             # fetch the klines from start_ts up to max 500 entries or the end_ts if set
-            print(self.usage["request_weight_1m"],self.usage["orders_10s"],self.usage["orders_1d"])
+            print("Request weight usage: ", self.usage["request_weight_1m"])
+            
             temp_data = self.get_klines(
                 symbol=symbol,
                 interval=interval,

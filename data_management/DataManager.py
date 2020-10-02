@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Author: Griffin Staples
+Date Created: Fri Oct 02 2020
+License:
+The MIT License (MIT)
+Copyright (c) 2020 Griffin Staples
+
+"""
 
 import os, sys
 sys.path.append(os.path.abspath("./"))
