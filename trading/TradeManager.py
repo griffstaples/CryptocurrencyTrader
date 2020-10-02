@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath("../config/"))
 from binance.client import Client
 
 from Trader import Trader
+from simple_network import SimpleNetworkTrader
 
 
 class TradeManager():
@@ -19,15 +20,14 @@ class TradeManager():
         self.client = Client(api_key,api_secret)
         
         self.statistics = {}
-        self.orders_per_sec = 0
-        self.reqs_per_min = 0
-        self.reqs_per_day = 0
-
     
-    def add_trader(self, name, method, save_data, auto_train, *args, **kwargs):
+    def add_trader(self, name, symbol1, symbol2, method, save_data=False, auto_train=False, *args, **kwargs):
         # Add trader
         if(self._trader_exists(name) == None):
-            trader = Trader(name, method, save_data, auto_train, args, kwargs)
+            if(method=="Simple Network"):
+                trader = SimpleNetworkTrader(name, symbol1, symbol2, save_data, auto_train)
+            else:
+                raise Exception("No method of type {} found for trader".format(method))
             self.traders.append(trader)
             self.statistics[name] = {}
         else:
@@ -39,23 +39,15 @@ class TradeManager():
         trader_index = self._trader_exists(name)
 
         if(trader_index != None):
-            self.traders.pop(trader_index)
+            trader = self.traders.pop(trader_index)
+            del trader
             self.statistics.pop(name,{})
         else:
             print("Trader not found")
 
-        
-
-    def modify_trader(self, name, options, *args, **kwargs):
-        # Modify trader
-        trader_index = self._trader_exists(name)
-        if(trader_index != None):
-            trader = self.traders[trader_index]
-            trader.modify_trader(options)
-        else:
-            print("Trader not found")
-
-
+    def run_traders(self, *args, **kwargs):
+        for trader in traders:
+            trader.run()
 
     def _trader_exists(self, name, *args, **kwargs):
         # Returns index of trader if found otherwise returns None
@@ -66,18 +58,4 @@ class TradeManager():
         
         # No trader found
         return None
-    
-    def get_all_stats(self, *args, **kwargs):
-        # Get all trader statistics
-        for trader in self.traders:
-            self.statistics[trader.name] = trader.get_stats()
-
-
-    def get_total_score(self, *args, **kwargs):
-        # Get API Score
-        for trader in self.traders:
-            self.orders_per_sec += trader.get_orders_per_sec()
-            self.reqs_per_min += trader.get_reqs_per_min()
-            self.reqs_per_day += trader.get_reqs_per_day()
-    
     

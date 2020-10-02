@@ -3,7 +3,9 @@ import hashlib
 import hmac
 import requests
 import time
-# from usage import usage as usage
+import json
+import sys, os
+import atexit
 from operator import itemgetter
 from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
@@ -101,29 +103,72 @@ class Client(object):
         self._requests_params = requests_params
         self.response = None
 
-        self.req_weight_1m = 0
-        self.orders_1s  = 0
-        self.orders_1d = 0
+        atexit.register(self._close_program)
+        self.usage = {}
+        self._init_usage()
 
         # init DNS and SSL cert
         self.ping()
+    
+    def _get_script_path(self):
+        return os.path.dirname(os.path.realpath(__file__))
         
-    # def _init_usage(self):
+    def _init_usage(self):
 
-    #     if(usage["day_start_unix"]+86400<time.time()):
-    #         usage["day_start_unix"] = time.time()
+        #load json file from memory
+        with open(os.path.join(self._get_script_path(),'usage.json'),'r') as json_file:
+            self.usage = json.load(json_file)
         
-    #     if(usage["min_start_unix"]+60<time.time()):
-    #         usage["min_start_unix"] = time.time()
+        curr_time = time.time()
+        if(self.usage["start_unix_10sec"]+10<curr_time):
+            self.usage["start_unix_10sec"] = curr_time
+        
+        if(self.usage["start_unix_min"]+60<curr_time):
+            self.usage["start_unix_min"] = curr_time
+
+        if(self.usage["start_unix_day"]+86400<curr_time):
+            self.usage["start_unix_day"] = curr_time
+
+    def _close_program(self):
+        #shut down script
+        with open(os.path.join(self._get_script_path(),'usage.json'),"w") as json_file:  
+            json.dump(self.usage,json_file,indent=4)
+
+    def _check_usage(self):
+        #check usage and wait if need be
+        if(self.usage["request_weight_1m"]>800):
+            print("Sleeping for 60s")
+            wait_time = 60-(time.time()-self.usage["start_unix_min"])
+            wait_time = max(0,wait_time)
+            print("Sleeping for {}s".format(wait_time))
+            time.sleep(wait_time)
+        
+        if(self.usage["orders_10s"] > 8):
+            print("Sleeping for 10s")
+            wait_time = 10-(time.time()-self.usage["start_unix_10sec"])
+            wait_time = max(0,wait_time)
+            print("Sleeping for {}s".format(wait_time))
+            time.sleep(wait_time)
+
+        if(self.usage["orders_1d"]>80000):
+            wait_time = 86400-(time.time()-self.usage["start_unix_day"])
+            wait_time = max(0,wait_time)
+            print("Sleeping for {}s".format(wait_time))
+            time.sleep(wait_time)
+
+    def _update_usage(self):
+        #update usage stats
+        self.usage["request_weight_1m"] = int(self.response.headers.get("x-mbx-used-weight-1m",self.usage["request_weight_1m"]))
+        self.usage["orders_10s"] = int(self.response.headers.get("x-mbx-order-count-10s",self.usage["orders_10s"]))
+        self.usage["orders_1d"] = int(self.response.headers.get("x-mbx-order-count-1d",self.usage["orders_1d"]))
+
 
     # def _update_usage(self):
     #     #update counter start times
 
-    #     if(usage["min_start_unix"]+60<time.time()):
+    #     if(usage["start_unix_min"]+60<time.time()):
     #         #update start time to be 60s intervals from login time
-    #         usage["min_start_unix"] += 60 * int((time.time()-usage["min_start_unix"])/60)
-
-    #         #reset request weight number
+    #         usage["start_unix_min"] += 60 * ((time.time()-usage["start_unix_min"])//60)
     #         usage["request_weight_1m"] = 0
 
     #     elif(self.response.headers["x-mbx-used-weight-1m"]):
@@ -131,28 +176,26 @@ class Client(object):
     #         usage["request_weight_1m"] = self.response.headers["x-mbx-used-weight-1m"]
 
 
-    #     if(usage["sec_start_unix"]+1<time.time()):
-    #         #update start time to be 1s intervals from login time
-    #         usage["sec_start_unix"] += 1 * int((time.time()-usage["sec_start_unix"]))
+    #     if(usage["start_unix_10sec"]+10<time.time()):
+    #         #update start time to be 10s intervals from login time
+    #         usage["start_unix_10sec"] += 10 * ((time.time()-usage["start_unix_10sec"])//10)
+    #         usage["orders_10s"] = 0
 
-    #         #reset order number
-    #         usage["orders_1s"] = 0
-
-    #     elif(self.response.headers["x-mbx-order-count-1s"]):
+    #     elif(self.response.headers["x-mbx-order-count-10s"]):
     #         #update order usage
-    #        usage["orders_1s"] = self.response.headers["x-mbx-order-count-1s"]
+    #        usage["orders_10s"] += self.response.headers["x-mbx-order-count-10s"]
 
 
-    #     if(usage["day_start_unix"]+86400<time.time()):
+    #     if(usage["start_unix_day"]+86400<time.time()):
     #         #update start time to be 1d intervals from login time
-    #         usage["day_start_unix"] += 86400 * int((time.time()-usage["day_start_unix"])/86400)
+    #         usage["start_unix_day"] += 86400 * ((time.time()-usage["start_unix_day"])//86400)
 
     #         #reset order number
     #         usage["orders_1d"] = 0
         
     #     elif(self.response.headers["x-mbx-order-count-1d"]):
     #         #udpate order usage
-    #         usage["order_1d"] = self.response.headers["x-mbx-order-count-1d"]
+    #         usage["orders_1d"] += self.response.headers["x-mbx-order-count-1d"]
             
 
     def _init_session(self):
@@ -246,24 +289,12 @@ class Client(object):
 
 
         # Check to make sure I won't go over the limit
-        if(self.req_weight_1m>800):
-            print("Sleeping for 60s")
-            time.sleep(60)
-        
-        if(self.orders_1s > 1):
-            print("Sleeping for 1s")
-            time.sleep(1)
-
-        if(self.orders_1d>80000):
-            print("Sleeping for 1 day")
-            time.sleep(86400)
+        self._check_usage()
 
         self.response = getattr(self.session, method)(uri, **kwargs)
 
         # Update scores
-        self.req_weight_1m = int(self.response.headers.get("x-mbx-used-weight-1m",0))
-        self.orders_1s = int(self.response.headers.get("x-mbx-order-count-1s",0))
-        self.orders_1d = int(self.response.headers.get("x-mbx-order-count-1d",0))
+        self._update_usage()
 
         return self._handle_response()
 
@@ -877,7 +908,7 @@ class Client(object):
         idx = 0
         while True:
             # fetch the klines from start_ts up to max 500 entries or the end_ts if set
-            print(self.req_weight_1m,self.orders_1s,self.orders_1d)
+            print(self.usage["request_weight_1m"],self.usage["orders_10s"],self.usage["orders_1d"])
             temp_data = self.get_klines(
                 symbol=symbol,
                 interval=interval,

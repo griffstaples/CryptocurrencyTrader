@@ -68,28 +68,53 @@ class SimpleLinearTrader(Trader):
         losses = 0
         earnings = 0
         trans_amount = 1
-        earnings_history = []
+        total_earnings = np.zeros((len(inputs[:,0]),None))
+        commission = 0.00075
+        commission_amt = commission*trans_amount
+        threshold = 1000
+
 
 
         for i,row in enumerate(inputs):
             last_price = row[-1]
             estimate = self._calc_close_price(row)
-            if(estimate>=last_price and answers[i]>=last_price):
-                wins += 1
-                earnings += (answers[i]/last_price-1)*trans_amount
 
-            elif(estimate>=last_price and answers[i]<last_price):
-                losses +=1
-                earnings += (answers[i]/last_price-1)*trans_amount
+            if(answers[i]>=last_price):
+                #price is going up
+                if(estimate>last_price+commission_amt+threshold):
+                    wins+=1
+                    earnings += (answers[i]/last_price-1)*trans_amount-commission_amt
+                elif(estimate<last_price-commission_amt-threshold):
+                    losses+=1
+                    earnings += (1-answers[i]/last_price)*trans_amount-commission_amt
 
-            elif(estimate<last_price and answers[i]>=last_price):
-                losses +=1
-                earnings -= (answers[i]/last_price-1)*trans_amount
+            else:
+                #price is going down
+                if(estimate>last_price+commission_amt+threshold):
+                    losses+=1
+                    earnings += (answers[i]/last_price-1)*trans_amount-commission_amt
+                elif(estimate<last_price-commission_amt-threshold):
+                    wins+=1
+                    earnings += (1-answers[i]/last_price)*trans_amount-commission_amt
+            
+            total_earnings[i] = earnings
 
-            elif(estimate<last_price and answers[i]<last_price):
-                wins +=1
-                earnings -= (answers[i]/last_price-1)*trans_amount
-            earnings_history.append(earnings)
+
+            # if(estimate>=last_price and answers[i]>=last_price):
+            #     wins += 1
+            #     earnings += (answers[i]/last_price-1)*trans_amount
+
+            # elif(estimate>=last_price and answers[i]<last_price):
+            #     losses +=1
+            #     earnings += (answers[i]/last_price-1)*trans_amount
+
+            # elif(estimate<last_price and answers[i]>=last_price):
+            #     losses +=1
+            #     earnings -= (answers[i]/last_price-1)*trans_amount
+
+            # elif(estimate<last_price and answers[i]<last_price):
+            #     wins +=1
+            #     earnings -= (answers[i]/last_price-1)*trans_amount
 
         
 
@@ -97,7 +122,7 @@ class SimpleLinearTrader(Trader):
         print("losses: ",losses)
         print("earnings: ",earnings)
 
-        plt.plot(earnings_history,color="red")
+        plt.plot(total_earnings,color="red")
         plt.plot(data[:floor_length:time_frame,1],"blue")
         plt.show()
 
@@ -111,9 +136,6 @@ class SimpleLinearTrader(Trader):
         data = self.DataManager.load_data(filepath)
         
         return data
-        
-    # def calculate_answer(self, input_data, *args, **kwargs):
-    #     # calculate answers
 
 
 
@@ -126,7 +148,6 @@ if __name__ == "__main__":
     api_secret = os.environ["binance_secret"]
     client = Client(api_key,api_secret)
     
-    simple = SimpleLinearTrader(client,"name","ETHUSDT","sample method")
-    simple.evaluate("../data/ETHUSDT_1m_saved.csv")
+    simple = SimpleLinearTrader(client,"name","ETH","USDT")
 
 

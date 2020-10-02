@@ -102,7 +102,7 @@ if __name__ == "__main__":
     api_secret = os.environ["binance_secret"]
     client = Client(api_key,api_secret)
     
-    symbol = "XRPUSDT"
+    symbol = "ETHBKRW"
     interval = "1m"
     dataManager = DataManager(client, symbol)
     dataManager.create_historical_data("../data/"+symbol+"_"+interval+".csv","1m",0,int(time.time()*1000),1000)
