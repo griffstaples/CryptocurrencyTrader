@@ -113,19 +113,6 @@ class SimpleNetworkTrader(Trader):
                 elif(y_pred[i]<last_close-trans_amt*commission-threshold):
                     losses+=1
                     earnings += (1-ans/last_close)*trans_amt-trans_amt*commission
-
-                # if(y_pred[i]>=ans):
-                #     #rewards as I would have bought
-                #     wins+=1
-                #     earnings += (ans/last_close-1)*trans_amt - trans_amt*commission
-                # else:
-                #     if(y_pred[i]>last_close):
-                #         wins+=1
-                #         earnings += (ans/last_close-1)*trans_amt  - trans_amt*commission
-                #     else:
-                #         #punish I was wouldn't have made as much
-                #         losses+=1
-                #         earnings += (1-ans/last_close)*trans_amt - trans_amt*commission
             else:
                 #stock is going down
                 if(y_pred[i]>last_close+trans_amt*commission+threshold):
@@ -134,18 +121,6 @@ class SimpleNetworkTrader(Trader):
                 elif(y_pred[i]<last_close-trans_amt*commission-threshold):
                     wins+=1
                     earnings += (1-ans/last_close)*trans_amt+trans_amt*commission
-                # if(y_pred[i]>=ans):
-                #     if(y_pred[i]<last_close):
-                #         wins+=1
-                #         earnings += (1-ans/last_close)*trans_amt - trans_amt*commission
-                #     else:
-                #         #punish as I would have lost more by holding on too much
-                #         losses+=1
-                #         earnings += (ans/last_close-1)*trans_amt - trans_amt*commission
-                # else:
-                #     #reward as I would have sold more stock
-                #     wins+=1
-                #     earnings += (1-ans/last_close)*trans_amt - trans_amt*commission
             total_earnings[i] = earnings
     
 
@@ -265,13 +240,13 @@ class SimpleNetworkTrader(Trader):
         print(order_object)
         if(prediction>last_close+commission_amount+threshold):
             print("{}: Buying".format(self.name))
-            # order_object["action"] = "BUY"
-            # self.place_order(order_object)
+            order_object["action"] = "BUY"
+            self.place_order(order_object)
 
         elif(prediction<last_close-commission_amount-threshold):
             print("{}: Selling".format(self.name))
-            # order_object["action"] = "SELL"
-            # self.place_order(order_object)
+            order_object["action"] = "SELL"
+            self.place_order(order_object)
         
         else:
             print("{}: No order placed".format(self.name))

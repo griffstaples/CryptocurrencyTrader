@@ -189,13 +189,13 @@ class SimpleLinearTrader(Trader):
         print(order_object)
         if(prediction>last_close+commission_amount+threshold):
             print("{}: Buying".format(self.name))
-            # order_object["action"] = "BUY"
-            # self.place_order(order_object)
+            order_object["action"] = "BUY"
+            self.place_order(order_object)
 
         elif(prediction<last_close-commission_amount-threshold):
             print("{}: Selling".format(self.name))
-            # order_object["action"] = "SELL"
-            # self.place_order(order_object)
+            order_object["action"] = "SELL"
+            self.place_order(order_object)
         
         else:
             print("{}: No order placed".format(self.name))
