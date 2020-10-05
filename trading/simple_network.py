@@ -148,9 +148,58 @@ class SimpleNetworkTrader(Trader):
         plt.ylabel("{} per {}".format(symbol2,symbol1))
         plt.show()
 
+    def place_market_order(self, order_object, *args, **kwargs):
+
+        #order_object properties
+        action = order_object["action"] #BUY or SELL or HOLD
+        price = order_object["price"] #price in symbol2 to buy or sell symbol1 at
+        # amount = order_object["amount"] #amount of symbol1 to buy or sell
+
+        if action != "HOLD":
+            #get open orders for given symbol
+            open_orders = self.client.get_open_orders(symbol=self.symbol)
+
+            #cancel old orders
+            open_orders = self.cancel_old_orders(open_orders,1000*60*10)
+
+            #get amount I can buy at given price
+            amount = self._get_amount_at_price(action,price)
+
+            #get current balances in said coins
+            symbol1_balance, symbol2_balance = self._get_asset_balance()
+            print("{} Balance: {}".format(symbol1,symbol1_balance))
+            print("{} Balance: {}".format(symbol2,symbol2_balance))
+
+            #calculate minimum quantity required to buy
+            self.min_amount = self.min_notional/price
+            print("MIN_AMOUNT: ", self.min_amount)
+
+            #determine amount to buy
+            trans_amount = self._calculate_amount(action,symbol1_balance,symbol2_balance,amount)
+            trans_amount = self._round_up(trans_amount,self.trade_precision)
+            print("DESIRED_AMOUNT: ", amount)
+            print("TRANS_AMOUNT: ", trans_amount)
+
+            #buy/sell
+            if(len(open_orders)<self.max_algo_orders and trans_amount>0 and amount>=trans_amount):
+                if(action=="BUY"):
+                    #buy symbol1 with symbol2
+                    print("Buying {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
+                    order = client.order_market_buy(symbol=self.symbol,quantity=trans_amount)
+
+                elif(action=="SELL"):
+                    #sell symbol1 for symbol2
+                    print("Selling {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
+                    order = client.order_market_sell(symbol=self.symbol,quantity=trans_amount)
+
+                print(order)
+            
+            symbol1_balance, symbol2_balance = self._get_asset_balance()
+            print("{} Balance: {}".format(symbol1,symbol1_balance))
+            print("{} Balance: {}".format(symbol2,symbol2_balance))
 
 
-    def place_order(self, order_object, *args, **kwargs):
+    def place_limit_order(self, order_object, *args, **kwargs):
         
         #order_object properties
         action = order_object["action"] #BUY or SELL or HOLD
@@ -240,13 +289,13 @@ class SimpleNetworkTrader(Trader):
         print(order_object)
         if(prediction>last_close+commission_amount+threshold):
             print("{}: Buying".format(self.name))
-            order_object["action"] = "BUY"
-            self.place_order(order_object)
+            # order_object["action"] = "BUY"
+            # self.place_market_order(order_object)
 
         elif(prediction<last_close-commission_amount-threshold):
             print("{}: Selling".format(self.name))
-            order_object["action"] = "SELL"
-            self.place_order(order_object)
+            # order_object["action"] = "SELL"
+            # self.place_market_order(order_object)
         
         else:
             print("{}: No order placed".format(self.name))
@@ -297,5 +346,10 @@ if __name__ == "__main__":
     
     # simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
     # simple.train_network("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
-    simple.evaluate_trader("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
-    simple.run()
+    # simple.evaluate_trader("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
+    # simple.run()
+
+
+    
+
+

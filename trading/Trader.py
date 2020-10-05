@@ -117,6 +117,34 @@ class Trader(object):
 
         return loaded_model
 
+    def _get_amount_at_price(self, action, price):
+        res = self.client.get_order_book(symbol=self.symbol,limit=1000)
+        bids = res["bids"] #what people are buying for
+        asks = res["asks"] #what people are selling for
+
+        amount = 0
+        total_amount = 0
+        
+        if(action=="SELL"):
+            for bid in bids:
+                total_amount+=float(bid[1])
+                if(price<float(bid[0])):
+                    amount+=float(bid[1])
+
+            print("total sell amount: ", total_amount)
+            print("amount can sell: ", amount)
+
+        elif(action=="BUY"):
+            for ask in asks:
+                total_amount+=float(ask[1])
+                if(price>float(ask[0])):
+                    amount+=float(ask[1])
+            
+            print("total buy amount: ", total_amount)
+            print("amount can buy: ", amount)
+
+        return amount
+
     def _get_asset_balance(self, *args, **kwargs):
 
         symbol1_balance = self.client.get_asset_balance(asset=self.symbol1)
