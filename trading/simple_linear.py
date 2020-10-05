@@ -49,7 +49,7 @@ class SimpleLinearTrader(Trader):
         earnings = 0
         trans_amount = 1
         total_earnings = np.zeros((len(inputs[:,0]),))
-        commission = 0.00075
+        commission = self.taker_commission
         commission_amt = commission*trans_amount
         threshold = 1000
 
@@ -203,7 +203,7 @@ class SimpleLinearTrader(Trader):
         #define constants
         filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
         timeframe = 10
-        commission = 0.00075
+        commission = self.taker_commission
         threshold = 1000
 
         #create/update data file
@@ -235,18 +235,21 @@ class SimpleLinearTrader(Trader):
         commission_amount = commission*order_object["amount"]
 
         print(order_object)
-        if(prediction>last_close+commission_amount+threshold):
-            print("{}: Buying".format(self.name))
-            # order_object["action"] = "BUY"
-            # self.place_market_order(order_object)
+        try:
+            if(prediction>last_close+commission_amount+threshold):
+                print("{}: Buying".format(self.name))
+                order_object["action"] = "BUY"
+                self.place_market_order(order_object)
 
-        elif(prediction<last_close-commission_amount-threshold):
-            print("{}: Selling".format(self.name))
-            # order_object["action"] = "SELL"
-            # self.place_market_order(order_object)
-        
-        else:
-            print("{}: No order placed".format(self.name))
+            elif(prediction<last_close-commission_amount-threshold):
+                print("{}: Selling".format(self.name))
+                order_object["action"] = "SELL"
+                self.place_market_order(order_object)
+            
+            else:
+                print("{}: No order placed".format(self.name))
+        except Exception as e:
+            print("Error occurred when placing an order: ", e)
 
     
     def _calc_close_price(self,close_prices):
@@ -256,7 +259,20 @@ class SimpleLinearTrader(Trader):
         next_close = np.polyval(close_price_fit,len(close_prices)+1)
         return next_close
 
+    def _calculate_amount(self, action, symbol1_amt, symbol2_amt, trans_amt):
+        commission = self.taker_commission*trans_amt
 
+        if(action=="BUY"):
+            if(symbol2_amt-trans_amt-commission>=self.min_balance_symbol2):
+                return max(trans_amt,self.min_amount)
+            elif(symbol2_amt-self.min_amount-commission>=self.min_balance_symbol2):
+                return self.min_amount
+        elif(action=="SELL"):
+            if(symbol1_amt-trans_amt-commission>=self.min_balance_symbol1):
+                return max(trans_amt,self.min_amount)
+            elif(symbol1_amt-self.min_amout-commission>=self.min_balance_symbol1):
+                return self.min_amount
+        return 0
         
         
 

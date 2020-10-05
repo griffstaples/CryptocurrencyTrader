@@ -31,14 +31,18 @@ def run_every(func,update_time):
 
 if __name__ == "__main__":
     update_time = 60 #seconds
+    symbol1 = "ETH"
+    symbol2 = "BKRW"
+    min_symbol1 = 0.0014
+    min_symbol2 = 10000
     print("Starting Trading Algorithm")
 
     # Instantiate Trade Manager
     Manager = TradeManager(def_options={})
     
     # Add traders
-    Manager.add_trader("MySimpleTrader", "ETH", "BKRW", "Simple Linear")
-    Manager.add_trader("MyNetworkTrader", "ETH", "BKRW","Simple Network")
+    Manager.add_trader("MySimpleTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Linear")
+    Manager.add_trader("MyNetworkTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Network")
 
     while True:
         try:

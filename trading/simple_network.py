@@ -100,7 +100,7 @@ class SimpleNetworkTrader(Trader):
         wins=0
         losses=0
         total_earnings = np.zeros((len(answers),))
-        commission = 0.00075
+        commission = self.taker_commission
         threshold = 1000
 
         for i, ans in enumerate(answers):
@@ -251,7 +251,7 @@ class SimpleNetworkTrader(Trader):
         filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
         network_path = "./trading/networks/simple_network_{}".format(self.symbol)
         timeframe = 10
-        commission = 0.001
+        commission = self.taker_commission
         threshold = 1000
 
         #create/update data file
@@ -287,18 +287,22 @@ class SimpleNetworkTrader(Trader):
         commission_amount = commission*order_object["amount"]
 
         print(order_object)
-        if(prediction>last_close+commission_amount+threshold):
-            print("{}: Buying".format(self.name))
-            # order_object["action"] = "BUY"
-            # self.place_market_order(order_object)
+        try:
+            if(prediction>last_close+commission_amount+threshold):
+                print("{}: Buying".format(self.name))
+                order_object["action"] = "BUY"
+                self.place_market_order(order_object)
 
-        elif(prediction<last_close-commission_amount-threshold):
-            print("{}: Selling".format(self.name))
-            # order_object["action"] = "SELL"
-            # self.place_market_order(order_object)
-        
-        else:
-            print("{}: No order placed".format(self.name))
+            elif(prediction<last_close-commission_amount-threshold):
+                print("{}: Selling".format(self.name))
+                order_object["action"] = "SELL"
+                self.place_market_order(order_object)
+            
+            else:
+                print("{}: No order placed".format(self.name))
+        except Exception as e:
+            print("Error occured when trying to place order: ",e)
+
         
 
     def _format_data(self, data, timeframe, *args, **kwargs):
@@ -317,7 +321,7 @@ class SimpleNetworkTrader(Trader):
 
 
     def _calculate_amount(self, action, symbol1_amt, symbol2_amt, trans_amt):
-        commission = 0.001*trans_amt
+        commission = self.taker_commission*trans_amt
 
         if(action=="BUY"):
             if(symbol2_amt-trans_amt-commission>=self.min_balance_symbol2):

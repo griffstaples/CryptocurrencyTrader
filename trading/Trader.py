@@ -24,7 +24,7 @@ from DataManager import DataManager
 
 class Trader(object):
 
-    def __init__(self, client, name, symbol1, symbol2 , save_data=False, auto_train=False, *args, **kwargs):
+    def __init__(self, client, name, symbol1, symbol2 , min_symbol1, min_symbol2, save_data=False, auto_train=False, *args, **kwargs):
         # Class Initialization
         
         self.client = client
@@ -36,10 +36,10 @@ class Trader(object):
         self.auto_train = auto_train # Machine learning methods only
         self.options = {}
         self.DataManager = DataManager(self.client,self.symbol)
-        self.maker_comission = 0.001
-        self.taker_comission = 0.001
-        self.min_balance_symbol1 = 0.0014
-        self.min_balance_symbol2 = 10000
+        self.maker_commission = 0.00075
+        self.taker_commission = 0.00075
+        self.min_balance_symbol1 = min_symbol1
+        self.min_balance_symbol2 = min_symbol2
 
         # Get important exchange info for trading pair
         symbol_info = self.client.get_symbol_info(self.symbol)
@@ -164,6 +164,5 @@ class Trader(object):
     def _round_up(self, num, decimals=0):
         multiplier = 10 ** decimals
         return math.ceil(num * multiplier) / multiplier
-
     
     
