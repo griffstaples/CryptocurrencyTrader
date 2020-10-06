@@ -54,10 +54,10 @@ class DataManager():
             binance_interval = self._millis_to_binance_interval(interval)
         
         # If next interval has passed, get new interval data
-        if(int(time.time()*1000)>start_time+interval):
+        now = int(time.time()*1000) # get current time and convert to millis for binance
+        if(now>=start_time):
             with open(filepath,'a') as file:
-                end_time = int(time.time()*1000) # get current time and convert to millis for binance
-                new_klines = self.client.get_historical_klines(symbol=self.symbol, interval=binance_interval, start_str=start_time, end_str=end_time, limit = limit)
+                new_klines = self.client.get_historical_klines(symbol=self.symbol, interval=binance_interval, start_str=start_time, end_str=now, limit = limit)
                 writer = csv.writer(file)
                 writer.writerows(new_klines)
 

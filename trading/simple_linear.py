@@ -100,7 +100,7 @@ class SimpleLinearTrader(Trader):
         plt.plot(data[:floor_length:time_frame,1],color="red")
         plt.legend(["Earnings (scaled)", "Price Chart"])
         plt.xlabel("Minutes from start time")
-        plt.ylabel("{} per {}".format(symbol2,symbol1))
+        plt.ylabel("{} per {}".format(self.symbol2,self.symbol1))
         plt.show()
 
     def place_market_order(self, order_object, *args, **kwargs):
@@ -120,8 +120,8 @@ class SimpleLinearTrader(Trader):
 
             #get current balances in said coins
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
             #calculate minimum quantity required to buy
             self.min_amount = self.min_notional/price
@@ -136,19 +136,19 @@ class SimpleLinearTrader(Trader):
             if(len(open_orders)<self.max_algo_orders and trans_amount>0 and amount>=trans_amount):
                 if(action=="BUY"):
                     #buy symbol1 with symbol2
-                    print("Buying {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
+                    print("Buying {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
                     order = client.order_limit_buy(symbol=self.symbol,quantity=trans_amount,price=price)
 
                 elif(action=="SELL"):
                     #sell symbol1 for symbol2
-                    print("Selling {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
+                    print("Selling {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
                     order = client.order_limit_sell(symbol=self.symbol,quantity=trans_amount,price=price)
 
                 print(order)
             
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
 
     def place_limit_order(self, order_object, *args, **kwargs):
@@ -166,8 +166,8 @@ class SimpleLinearTrader(Trader):
 
             #get current balances in said coins
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
             #calculate minimum quantity required to buy
             self.min_amount = self.min_notional/price
@@ -182,19 +182,19 @@ class SimpleLinearTrader(Trader):
             if(len(open_orders)<self.max_algo_orders and trans_amount>0):
                 if(action=="BUY"):
                     #buy symbol1 with symbol2
-                    print("Buying {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
+                    print("Buying {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
                     order = client.order_limit_buy(symbol=self.symbol,quantity=trans_amount,price=price)
 
                 elif(action=="SELL"):
                     #sell symbol1 for symbol2
-                    print("Selling {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
+                    print("Selling {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
                     order = client.order_limit_sell(symbol=self.symbol,quantity=trans_amount,price=price)
 
                 print(order)
             
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
 
     def run(self, *args, **kwargs):

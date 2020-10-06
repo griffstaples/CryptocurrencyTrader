@@ -145,7 +145,7 @@ class SimpleNetworkTrader(Trader):
         plt.plot(answers,color="red")
         plt.legend(["Earnings (scaled)", "Price Chart"])
         plt.xlabel("Minutes from start time")
-        plt.ylabel("{} per {}".format(symbol2,symbol1))
+        plt.ylabel("{} per {}".format(self.symbol2,self.symbol1))
         plt.show()
 
     def place_market_order(self, order_object, *args, **kwargs):
@@ -162,13 +162,13 @@ class SimpleNetworkTrader(Trader):
             #cancel old orders
             open_orders = self.cancel_old_orders(open_orders,1000*60*10)
 
-            #get amount I can buy at given price
+            #get amount I can buy/sell at given price
             amount = self._get_amount_at_price(action,price)
 
             #get current balances in said coins
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
             #calculate minimum quantity required to buy
             self.min_amount = self.min_notional/price
@@ -184,19 +184,19 @@ class SimpleNetworkTrader(Trader):
             if(len(open_orders)<self.max_algo_orders and trans_amount>0 and amount>=trans_amount):
                 if(action=="BUY"):
                     #buy symbol1 with symbol2
-                    print("Buying {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
-                    order = client.order_market_buy(symbol=self.symbol,quantity=trans_amount)
+                    print("Buying {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
+                    # order = client.order_market_buy(symbol=self.symbol,quantity=trans_amount)
 
                 elif(action=="SELL"):
                     #sell symbol1 for symbol2
-                    print("Selling {} {} for {} {}".format(trans_amount,symbol1,trans_amount*price,symbol2))
-                    order = client.order_market_sell(symbol=self.symbol,quantity=trans_amount)
+                    print("Selling {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
+                    # order = client.order_market_sell(symbol=self.symbol,quantity=trans_amount)
 
                 print(order)
             
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
 
     def place_limit_order(self, order_object, *args, **kwargs):
@@ -215,8 +215,8 @@ class SimpleNetworkTrader(Trader):
 
             #get current balances in said coins
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
             #calculate minimum quantity required to buy
             self.min_amount = self.min_notional/price
@@ -242,8 +242,8 @@ class SimpleNetworkTrader(Trader):
                 print(order)
             
             symbol1_balance, symbol2_balance = self._get_asset_balance()
-            print("{} Balance: {}".format(symbol1,symbol1_balance))
-            print("{} Balance: {}".format(symbol2,symbol2_balance))
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
     def run(self, *args, **kwargs):
         #run trading algorithm
@@ -252,7 +252,7 @@ class SimpleNetworkTrader(Trader):
         network_path = "./trading/networks/simple_network_{}".format(self.symbol)
         timeframe = 10
         commission = self.taker_commission
-        threshold = 1000
+        threshold = 0
 
         #create/update data file
         now = int((time.time()//60)*60*1000)
@@ -287,6 +287,9 @@ class SimpleNetworkTrader(Trader):
         commission_amount = commission*order_object["amount"]
 
         print(order_object)
+        print(prediction)
+        print(last_close+commission_amount+threshold)
+        print(last_close-commission_amount-threshold)
         try:
             if(prediction>last_close+commission_amount+threshold):
                 print("{}: Buying".format(self.name))

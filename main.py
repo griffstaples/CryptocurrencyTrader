@@ -41,7 +41,7 @@ if __name__ == "__main__":
     Manager = TradeManager(def_options={})
     
     # Add traders
-    Manager.add_trader("MySimpleTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Linear")
+    # Manager.add_trader("MySimpleTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Linear")
     Manager.add_trader("MyNetworkTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Network")
 
     while True:
@@ -50,6 +50,7 @@ if __name__ == "__main__":
 
         except Exception as e:
             print(e.__class__, "occurred!")
-        finally:
-            print("shut down routine")
             break
+        
+    print('running shut down routine')
+    
