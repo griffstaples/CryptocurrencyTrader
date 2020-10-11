@@ -32,13 +32,18 @@ class TradeManager():
         
         self.statistics = {}
     
-    def add_trader(self, name, symbol1, symbol2, min_symbol1, min_symbol2, method, save_data=False, auto_train=False, *args, **kwargs):
+    def add_trader(self, config, *args, **kwargs):
         # Add trader
+
+        name = config["universal_config"]["name"]
+        method = config["universal_config"]["method"]
+
+        # Select trading method
         if(self._trader_exists(name) == None):
             if(method=="Simple Network"):
-                trader = SimpleNetworkTrader(self.client, name, symbol1, symbol2, min_symbol1, min_symbol2, save_data, auto_train)
+                trader = SimpleNetworkTrader(self.client, config)
             elif(method=="Simple Linear"):
-                trader = SimpleLinearTrader(self.client, name, symbol1, symbol2, min_symbol1, min_symbol2, save_data, auto_train)
+                trader = SimpleLinearTrader(self.client, config)
             else:
                 raise Exception("No method of type {} found for trader".format(method))
             self.traders.append(trader)

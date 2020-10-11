@@ -13,12 +13,14 @@ Copyright (c) 2020 Griffin Staples
 import sys
 import os
 import time
+import json
 
 sys.path.append(os.path.abspath("./trading/"))
 
 from TradeManager import TradeManager
 
 def run_every(func,update_time):
+    #define loop function
     start_time = time.time()
     
     func() #call function
@@ -35,22 +37,37 @@ if __name__ == "__main__":
     symbol2 = "BKRW"
     min_symbol1 = 0.0014
     min_symbol2 = 10000
+
+    # Synchronize API fetch time
+    print("Wait until start of new minute...")
+    wait_time = update_time-(time.time()-(time.time()//update_time)*update_time)
+    print('waiting {}s'.format(wait_time))
+    time.sleep(wait_time)
     print("Starting Trading Algorithm")
 
     # Instantiate Trade Manager
     Manager = TradeManager(def_options={})
     
     # Add traders
-    # Manager.add_trader("MySimpleTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Linear")
-    Manager.add_trader("MyNetworkTrader", symbol1, symbol2, min_symbol1, min_symbol2, "Simple Network")
+    
+
+
+    json_file = open('./trading/configurations/simple_linear_config1.json','r')
+    simple_linear_config1 = json.load(json_file)
+
+    json_file = open('./trading/configurations/simple_net_config1.json','r')
+    simple_net_config1 = json.load(json_file)
+    
+    # Manager.add_trader(simple_linear_config1)
+    Manager.add_trader(simple_net_config1)
 
     while True:
         try:
             run_every(Manager.run_traders, update_time)
 
         except Exception as e:
-            print(e.__class__, "occurred!")
+            print(e, "occurred!")
             break
-        
-    print('running shut down routine')
+
+    # print('running shut down routine')
     

@@ -1,0 +1,30 @@
+{
+    "universal_config": {
+        "name": "MySimpleLinearTrader1",
+        "method": "Simple Network",
+        "symbol1": "ETH",
+        "symbol2": "BKRW",
+        "min_balance_symbol1": 0,
+        "min_balance_symbol2": 0,
+        "maker_commission": 0.00075,
+        "taker_commission": 0.00075,
+        "save_data": true,
+        "auto_train": false,
+        "statistics": {
+            "orders_made": 0,
+            "orders_cancelled": 0,
+            "total_trade_qty": 0,
+            "conversion_rate": 0,
+            "trade_weight": 0,
+            "end_time": 0
+        },
+        "order_type": "LIMIT",
+        "trade_history": []
+    },
+    "specific_config": {
+        "timeframe": 10,
+        "threshold": 500,
+        "cancel_after_mins": 1 
+    }
+
+}

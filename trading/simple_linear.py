@@ -28,6 +28,13 @@ from local_packages.python_binance_master.binance.client import Client
 
 class SimpleLinearTrader(Trader):
 
+    def __init__(self, client, config, *args, **kwargs):
+        #Initialize trader
+        for key in config["specific_config"].keys():
+            setattr(self,key,config["specific_config"][key])
+
+        # Default instantiation
+        super().__init__(client, config)
 
     def evaluate_trader(self, filepath, *args, **kwargs):
 
@@ -35,11 +42,11 @@ class SimpleLinearTrader(Trader):
         data = self.DataManager.load_data(filepath,cols=[0,4])
         
         # choose a time frame of 10
-        time_frame = 10
+        self.timeframe = 10
         length = len(data[:,1])
-        floor_length = length//time_frame * time_frame #make sure length of array is divisible by 10
+        floor_length = length//self.timeframe * self.timeframe #make sure length of array is divisible by 10
 
-        inputs = np.reshape(data[:floor_length,1],(floor_length//time_frame,time_frame))
+        inputs = np.reshape(data[:floor_length,1],(floor_length//self.timeframe,self.timeframe))
 
         answers = inputs[1:,0] #get answers
         inputs = inputs[:-1,:] #remove last element from inputs as we don't know the answer
@@ -51,7 +58,7 @@ class SimpleLinearTrader(Trader):
         total_earnings = np.zeros((len(inputs[:,0]),))
         commission = self.taker_commission
         commission_amt = commission*trans_amount
-        threshold = 1000
+        self.threshold = 1000
 
 
 
@@ -61,19 +68,19 @@ class SimpleLinearTrader(Trader):
 
             if(answers[i]>=last_price):
                 #price is going up
-                if(estimate>last_price+commission_amt+threshold):
+                if(estimate>last_price+commission_amt+self.threshold):
                     wins+=1
                     earnings += (answers[i]/last_price-1)*trans_amount-commission_amt
-                elif(estimate<last_price-commission_amt-threshold):
+                elif(estimate<last_price-commission_amt-self.threshold):
                     losses+=1
                     earnings += (1-answers[i]/last_price)*trans_amount-commission_amt
 
             else:
                 #price is going down
-                if(estimate>last_price+commission_amt+threshold):
+                if(estimate>last_price+commission_amt+self.threshold):
                     losses+=1
                     earnings += (answers[i]/last_price-1)*trans_amount-commission_amt
-                elif(estimate<last_price-commission_amt-threshold):
+                elif(estimate<last_price-commission_amt-self.threshold):
                     wins+=1
                     earnings += (1-answers[i]/last_price)*trans_amount-commission_amt
             
@@ -97,7 +104,7 @@ class SimpleLinearTrader(Trader):
 
         plt.figure(1)
         plt.plot(total_earnings/np.max(abs(total_earnings))*np.max(answers),color="blue")
-        plt.plot(data[:floor_length:time_frame,1],color="red")
+        plt.plot(data[:floor_length:self.timeframe,1],color="red")
         plt.legend(["Earnings (scaled)", "Price Chart"])
         plt.xlabel("Minutes from start time")
         plt.ylabel("{} per {}".format(self.symbol2,self.symbol1))
@@ -114,7 +121,7 @@ class SimpleLinearTrader(Trader):
             open_orders = self.client.get_open_orders(symbol=self.symbol)
 
             #cancel old orders
-            open_orders = self.cancel_old_orders(open_orders,1000*60*10)
+            open_orders = self.cancel_old_orders(open_orders,1000*60*self.cancel_after_mins)
 
             amount = self._get_amount_at_price(action,price)
 
@@ -162,7 +169,7 @@ class SimpleLinearTrader(Trader):
             open_orders = self.client.get_open_orders(symbol=self.symbol)
 
             #cancel old orders
-            open_orders = self.cancel_old_orders(open_orders,1000*60*10)
+            open_orders = self.cancel_old_orders(open_orders,1000*60*self.cancel_after_mins)
 
             #get current balances in said coins
             symbol1_balance, symbol2_balance = self._get_asset_balance()
@@ -202,13 +209,13 @@ class SimpleLinearTrader(Trader):
 
         #define constants
         filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
-        timeframe = 10
+        self.timeframe = 10
         commission = self.taker_commission
-        threshold = 1000
+        self.threshold = 1000
 
         #create/update data file
         now = int((time.time()//60)*60*1000)
-        start = int(now-(timeframe-1)*60000)
+        start = int(now-(self.timeframe)*60000)
 
         if(os.path.exists(filepath)):
             self.DataManager.update_historical_data(filepath.format(self.symbol))
@@ -220,7 +227,7 @@ class SimpleLinearTrader(Trader):
         data = self.DataManager.load_data(filepath,cols=[0,4])
 
         #format data for network
-        input_data = data[-timeframe:,1]
+        input_data = data[-self.timeframe:,1]
 
         #make prediction
         prediction = self._calc_close_price(input_data)
@@ -235,21 +242,21 @@ class SimpleLinearTrader(Trader):
         commission_amount = commission*order_object["amount"]
 
         print(order_object)
-        try:
-            if(prediction>last_close+commission_amount+threshold):
-                print("{}: Buying".format(self.name))
-                order_object["action"] = "BUY"
-                self.place_market_order(order_object)
+        # try:
+        if(prediction>last_close+commission_amount+self.threshold):
+            print("{}: Buying".format(self.name))
+            order_object["action"] = "BUY"
+            self.place_market_order(order_object)
 
-            elif(prediction<last_close-commission_amount-threshold):
-                print("{}: Selling".format(self.name))
-                order_object["action"] = "SELL"
-                self.place_market_order(order_object)
-            
-            else:
-                print("{}: No order placed".format(self.name))
-        except Exception as e:
-            print("Error occurred when placing an order: ", e)
+        elif(prediction<last_close-commission_amount-self.threshold):
+            print("{}: Selling".format(self.name))
+            order_object["action"] = "SELL"
+            self.place_market_order(order_object)
+        
+        else:
+            print("{}: No order placed".format(self.name))
+        # except Exception as e:
+        #     print("Error occurred when placing an order: ", e)
 
     
     def _calc_close_price(self,close_prices):
