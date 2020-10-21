@@ -23,9 +23,12 @@ import matplotlib.pyplot as plt
 from keras.models import model_from_json
 from keras import Input, Model, optimizers
 from keras.layers import Dense
+import keras.backend as K
 import json
 import keras
 from scipy.stats import binom
+import tensorflow as tf
+tf.config.run_functions_eagerly(True)
 
 
 from Trader import Trader
@@ -51,12 +54,109 @@ class SimpleNetworkTrader(Trader):
 
         data = self.DataManager.load_data(filepath,start,cols=[0,4])
         
-        formatted_input, answers = self._format_data(data)
+        unmixed_formatted_input, unmixed_answers = self._format_data(data)
 
         # randomize inputs and answers in unison
-        p = np.random.permutation(len(answers))
-        answers = answers[p]
-        formatted_input = formatted_input[p]
+        p = np.random.permutation(len(unmixed_answers))
+        answers = unmixed_answers[p]
+        formatted_input = unmixed_formatted_input[p]
+        last_closes = formatted_input[:,-1]
+        answers_data = np.column_stack((answers,last_closes))
+
+        #define custom loss function
+
+        def loss_fcn(data, y_pred):
+
+            #parse input data
+            y_true = data[:,0]
+            last_close = data[:,1]
+            y_pred = y_pred[:,0]
+            trans_amt = 1
+            commission = self.taker_commission*trans_amt
+            earnings = 0
+            loss = 100000
+
+            # print('YPRED',y_pred)
+            # print('LASTCLOSE',last_close)
+
+            if(loss<20000):
+                pred_up_mask = K.greater(y_pred,last_close)
+                pred_down_mask = tf.math.logical_not(pred_up_mask)
+                # print('MASK',pred_up_mask)
+
+                pred_up = tf.boolean_mask(y_pred,pred_up_mask)
+                last_up = tf.boolean_mask(last_close,pred_up_mask)
+                true_up = tf.boolean_mask(y_true,pred_up_mask)
+                pred_down = tf.boolean_mask(y_pred,pred_down_mask)
+                last_down = tf.boolean_mask(last_close,pred_down_mask)
+                true_down = tf.boolean_mask(y_true,pred_down_mask)
+                
+
+                trans_price_up = (pred_up-self.threshold)
+                buy_up_mask = K.greater(trans_price_up,last_up+commission)
+                # print(trans_price_up)
+                earnings += K.sum((tf.boolean_mask(true_up,buy_up_mask)/tf.boolean_mask(trans_price_up,buy_up_mask)-1)*trans_amt - commission)
+
+                trans_price_down = (pred_down+self.threshold)
+                sell_down_mask = K.greater(trans_price_down,last_down+commission)
+                earnings += K.sum((1-tf.boolean_mask(true_down,sell_down_mask)/tf.boolean_mask(trans_price_down,sell_down_mask))*trans_amt - commission)
+                if(earnings<=0):
+                    loss = 1 - earnings
+                else:
+                    loss = tf.math.exp(-earnings)
+            else:
+                loss = K.mean(abs(y_true-y_pred))
+            # print(trans_price_down)
+
+
+            # for i in range(K.int_shape(y_pred)[0]):
+
+            #     if(y_pred[i]>last_close[i]):
+            #         trans_price = y_pred[i]-self.threshold
+            #         if(trans_price>last_close[i]+commission):
+            #             if(y_true[i]>trans_price):
+            #                 # wins+=1
+            #                 earnings += (y_true[i]/trans_price-1)*trans_amt - commission
+            #             else:
+            #                 # losses += 1
+            #                 earnings += (y_true[i]/trans_price-1)*trans_amt - commission
+            #         # else:
+            #             # no_trades += 1
+            #     elif(y_pred[i]<last_close[i]):
+            #         trans_price = y_pred[i]+self.threshold
+            #         if(trans_price<last_close[i]-commission):
+            #             if(y_true[i]<trans_price):
+            #                 # wins+=1
+            #                 earnings += (1-y_true[i]/trans_price)*trans_amt - commission
+            #             else:
+            #                 # losses+=1
+            #                 earnings += (1-y_true[i]/trans_price)*trans_amt - commission
+            # loss = 1/(100*abs(earnings)+0.1)
+
+            
+            
+            
+            # print(earnings)
+            # loss*=100
+                    # else:
+                        # no_trades += 1
+                # else:
+                    # no_trades += 1
+            # num_points = K.int_shape(y_true)[0]
+            # loss=0
+            # for i in range(num_points):
+            #     x = y_pred[i] - last_close[i]
+            #     d = y_true[i] - last_close[i]
+            #     lr = abs(0.1)
+            #     if(tf.math.count_nonzero(d)>0):
+            #         loss+= lr*(((x/d)**4)-2*((x/d)**2)+1)
+            #     else:
+            #         loss += lr*(1-tf.math.exp())
+
+             
+            # loss = K.mean(100*abs(1-tf.math.exp(-((y_pred-y_true)/y_true)**2)))
+
+            return loss
 
         # build network structure
         net_input = Input(shape=(self.timeframe,))
@@ -66,16 +166,29 @@ class SimpleNetworkTrader(Trader):
         model = Model(net_input,output)
 
         sgd = optimizers.Adam()
-        model.compile(optimizer=sgd,loss="mean_absolute_error",metrics=["mean_absolute_error"])
+        model.compile(optimizer=sgd,loss=loss_fcn,metrics=["mean_absolute_error"])
 
         # fit model
-        fit = model.fit(x=formatted_input, y=answers, validation_split=0.2, epochs=2,batch_size=1000)
+        fit = model.fit(x=formatted_input, y=answers_data, validation_split=0.2, epochs=5,batch_size=500,shuffle=False)
         
         # save network stats
         self.network_stats = {}
         self.network_stats["history"] = fit.history
         print("MAE: ", fit.history["mean_absolute_error"])
         print("MAE value: ", fit.history["val_mean_absolute_error"])
+        
+        # plt.plot(fit.history["mean_absolute_error"])
+        # plt.plot(fit.history["val_mean_absolute_error"])
+        # plt.title("model accuracy")
+        # plt.ylabel("accuracy")
+        # plt.xlabel("epoch")
+        # plt.legend(["train","eval"],loc="upper left")
+
+        # calculated = model.predict(unmixed_formatted_input)
+        # plt.plot(calculated,'r')
+        # plt.plot(unmixed_answers,'b')
+        # plt.show()
+
 
         self._save_network(model,network_path)
 
@@ -88,12 +201,12 @@ class SimpleNetworkTrader(Trader):
 
         data = self.DataManager.load_data(filepath,start,cols=[0,4])
         
-        formatted_input, answers = self._format_data(data)
+        unmixed_formatted_input, unmixed_answers = self._format_data(data)
 
         # randomize inputs and answers in unison
-        p = np.random.permutation(len(answers))
-        answers = answers[p]
-        formatted_input = formatted_input[p]
+        p = np.random.permutation(len(unmixed_answers))
+        answers = unmixed_answers[p]
+        formatted_input = unmixed_formatted_input[p]
 
         # build network structure
         net_input = Input(shape=(self.timeframe,))
@@ -106,13 +219,19 @@ class SimpleNetworkTrader(Trader):
         model.compile(optimizer=sgd,loss="mean_absolute_error",metrics=["mean_absolute_error"])
 
         # fit model
-        fit = model.fit(x=formatted_input, y=answers, validation_split=0.2, epochs=2,batch_size=1000)
+        fit = model.fit(x=formatted_input, y=answers, validation_split=0.2, epochs=3,batch_size=1000)
         
         # save network stats
         self.network_stats = {}
         self.network_stats["history"] = fit.history
         print("MAE: ", fit.history["mean_absolute_error"])
         print("MAE value: ", fit.history["val_mean_absolute_error"])
+
+
+        # calculated = model.predict(unmixed_formatted_input)
+        # plt.plot(calculated,'r')
+        # plt.plot(unmixed_answers,'b')
+        # plt.show()
 
         self._save_network(model,network_path)
 
@@ -513,7 +632,7 @@ if __name__ == "__main__":
     simple = SimpleNetworkTrader(client, config)
     
     simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
-    # simple.train_network("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
+    simple.train_network_v2("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
     simple.evaluate_trader_v2("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
     # simple.run()
 

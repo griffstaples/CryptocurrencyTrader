@@ -15,6 +15,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 from scipy.stats import binom
+import json
 
 
 sys.path.append(os.path.abspath("../data_management/"))
@@ -41,10 +42,8 @@ class SimpleLinearTrader(Trader):
         # load all data
         data = self.DataManager.load_data(filepath,cols=[0,4])
         
-        # choose a time frame of 10
-        self.timeframe = 10
         length = len(data[:,1])
-        floor_length = length//self.timeframe * self.timeframe #make sure length of array is divisible by 10
+        floor_length = length//self.timeframe * self.timeframe #make sure length of array is divisible by timeframe
 
         inputs = np.reshape(data[:floor_length,1],(floor_length//self.timeframe,self.timeframe))
 
@@ -58,9 +57,6 @@ class SimpleLinearTrader(Trader):
         total_earnings = np.zeros((len(inputs[:,0]),))
         commission = self.taker_commission
         commission_amt = commission*trans_amount
-        self.threshold = 1000
-
-
 
         for i,row in enumerate(inputs):
             last_price = row[-1]
@@ -105,6 +101,88 @@ class SimpleLinearTrader(Trader):
         plt.figure(1)
         plt.plot(total_earnings/np.max(abs(total_earnings))*np.max(answers),color="blue")
         plt.plot(data[:floor_length:self.timeframe,1],color="red")
+        plt.legend(["Earnings (scaled)", "Price Chart"])
+        plt.xlabel("Minutes from start time")
+        plt.ylabel("{} per {}".format(self.symbol2,self.symbol1))
+        plt.show()
+
+    def evaluate_trader_v2(self, filepath, *args , **kwargs):
+
+        # load all data
+        data = self.DataManager.load_data(filepath,cols=[0,4])
+        
+        length = len(data[:,1])
+        floor_length = length//self.timeframe * self.timeframe #make sure length of array is divisible by 10
+
+        inputs = np.zeros((length-self.timeframe,self.timeframe))
+        for i in range(length-self.timeframe):
+            inputs[i,:] = data[i:i+self.timeframe,1]
+        # inputs = np.reshape(data[:floor_length,1],(floor_length//self.timeframe,self.timeframe))
+        print("shape: ", np.shape(inputs))
+
+        answers = inputs[1:,0] #get answers
+        formatted_input = inputs[:-1,:] #remove last element from inputs as we don't know the answer
+
+        trans_amt = 1
+        earnings = 0
+        wins=0
+        losses=0
+        no_trades=0
+        total_earnings = np.zeros((len(answers),))
+        commission = self.taker_commission*trans_amt
+
+        for i, row in enumerate(formatted_input):
+            last_close = row[-1]
+            y_pred = self._calc_close_price(row)
+
+            if(y_pred>last_close):
+                trans_price = y_pred-self.threshold
+                if(trans_price>last_close+commission):
+                    if(answers[i]>trans_price):
+                        wins+=1
+                        earnings += (answers[i]/trans_price-1)*trans_amt - commission
+                    else:
+                        losses += 1
+                        earnings += (answers[i]/trans_price-1)*trans_amt - commission
+                else:
+                    no_trades += 1
+            elif(y_pred<last_close):
+                trans_price = y_pred+self.threshold
+                if(trans_price<last_close-commission):
+                    if(answers[i]<trans_price):
+                        wins+=1
+                        earnings += (1-answers[i]/trans_price)*trans_amt - commission
+                    else:
+                        losses+=1
+                        earnings += (1-answers[i]/trans_price)*trans_amt - commission
+                else:
+                    no_trades += 1
+            else:
+                no_trades += 1
+
+            total_earnings[i] = earnings
+    
+
+        N = wins+losses+no_trades
+        diffs = answers-formatted_input[:,-1] #find changes in value between last close price and next close price
+        diffs_mean = np.mean(diffs) #find mean of diffs
+        num_times_goes_down = np.count_nonzero(diffs<0)
+        num_times_goes_up = len(diffs)-num_times_goes_down
+        prob = binom.cdf(losses,N,0.5)
+
+        #print evaluation info
+        print("wins: ", wins)
+        print("losses: ", losses)
+        print('no trades: ', no_trades)
+        print("num times goes down: ", num_times_goes_down)
+        print("num times goes up: ", num_times_goes_up)
+        print("probality of fluke: ", 1-prob)
+        print("earnings: ", earnings)
+
+        #compare price chart with earnings (scaled)
+        plt.figure(1)
+        plt.plot(total_earnings/np.max(abs(total_earnings))*np.max(answers),color="blue")
+        plt.plot(answers,color="red")
         plt.legend(["Earnings (scaled)", "Price Chart"])
         plt.xlabel("Minutes from start time")
         plt.ylabel("{} per {}".format(self.symbol2,self.symbol1))
@@ -209,9 +287,7 @@ class SimpleLinearTrader(Trader):
 
         #define constants
         filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
-        self.timeframe = 10
         commission = self.taker_commission
-        self.threshold = 1000
 
         #create/update data file
         now = int((time.time()//60)*60*1000)
@@ -293,12 +369,14 @@ if __name__ == "__main__":
     symbol1 = "ETH"
     symbol2 = "BKRW"
     symbol = symbol1 + symbol2
+
+    json_file = open('./configurations/simple_linear_config1.json','r')
+    config = json.load(json_file)
+
+    simple = SimpleLinearTrader(client, config)
     
-    simple = SimpleLinearTrader(client,"MySimpleTrader",symbol1,symbol2)
-
-    simple.evaluate_trader("../data/{}_1m_saved.csv".format(symbol))
-    # simple.run()
-
+    simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
+    simple.evaluate_trader_v2("../data/"+symbol+"_1m_saved.csv")
 
 
 
