@@ -9,7 +9,6 @@ Copyright (c) 2020 Griffin Staples
 
 """
 
-
 import sys
 import os
 import time
@@ -29,15 +28,7 @@ def run_every(func,update_time):
     if(curr_time-start_time<update_time):
                 time.sleep(update_time-(curr_time-start_time))
 
-
-
-if __name__ == "__main__":
-    update_time = 60 #seconds
-    symbol1 = "ETH"
-    symbol2 = "BKRW"
-    min_symbol1 = 0.0014
-    min_symbol2 = 10000
-
+def synchronize_api(update_time):
     # Synchronize API fetch time
     print("Wait until start of new minute...")
     wait_time = update_time-(time.time()-(time.time()//update_time)*update_time)
@@ -45,22 +36,30 @@ if __name__ == "__main__":
     time.sleep(wait_time)
     print("Starting Trading Algorithm")
 
+
+if __name__ == "__main__":
+    update_time = 60 #seconds
+    symbol1 = "ETH"
+    symbol2 = "BKRW"
+
+    # Synchronize API fetch time
+    synchronize_api(update_time)
+
     # Instantiate Trade Manager
     Manager = TradeManager(def_options={})
     
-    # Add traders
+    # Load trader configurations
+    file_linear = open('./trading/configurations/simple_linear_config1.json','r')
+    file_network = open('./trading/configurations/simple_net_config1.json','r')
+    simple_linear_config1 = json.load(file_linear)
+    simple_net_config1 = json.load(file_network)
     
-
-
-    json_file = open('./trading/configurations/simple_linear_config1.json','r')
-    simple_linear_config1 = json.load(json_file)
-
-    json_file = open('./trading/configurations/simple_net_config1.json','r')
-    simple_net_config1 = json.load(json_file)
-    
-    # Manager.add_trader(simple_linear_config1)
+    # Add traders into manager object
+    Manager.add_trader(simple_linear_config1)
     Manager.add_trader(simple_net_config1)
 
+
+    # Run traders
     while True:
         try:
             run_every(Manager.run_traders, update_time)
@@ -69,5 +68,4 @@ if __name__ == "__main__":
             print(e, "occurred!")
             break
 
-    # print('running shut down routine')
     
