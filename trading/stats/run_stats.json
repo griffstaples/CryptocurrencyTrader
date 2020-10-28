@@ -1,0 +1,10 @@
+{
+    "orders_made": 0,
+    "orders_cancelled": 0,
+    "orders_completed": 0,
+    "trade_weight": 0,
+    "total_trade_qty": 0,
+    "conversion_rate": 0,
+    "run_time": 0,
+    "end_time": 1603914735.14141
+}

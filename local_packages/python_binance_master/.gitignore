@@ -5,4 +5,3 @@ binance/__pycache__/
 build/
 dist/
 python_binance.egg-info/
-usage.json
