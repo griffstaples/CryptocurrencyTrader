@@ -1,6 +1,6 @@
 {
     "universal_config": {
-        "name": "MySimpleLinearTrader1",
+        "name": "MySimpleNetworkTrader1",
         "method": "Simple Network",
         "symbol1": "ETH",
         "symbol2": "BKRW",

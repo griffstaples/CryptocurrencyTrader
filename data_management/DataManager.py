@@ -112,10 +112,10 @@ if __name__ == "__main__":
     api_secret = os.environ["binance_secret"]
     client = Client(api_key,api_secret)
     
-    symbol = "ETHBKRW"
+    symbol = "ETHBTC"
     interval = "1m"
     dataManager = DataManager(client, symbol)
-    dataManager.create_historical_data("../data/"+symbol+"_"+interval+".csv","1m",0,int(time.time()*1000),1000)
+    dataManager.create_historical_data("../data/"+symbol+"_"+interval+".csv","1m",int(time.time()*1000)-1000*60*1000,int(time.time()*1000),1000)
     # dataManager.update_historical_data("../data/"+symbol+"_"+interval+"test.csv",1000)
     
     

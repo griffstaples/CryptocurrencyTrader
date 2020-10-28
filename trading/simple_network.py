@@ -471,7 +471,7 @@ class SimpleNetworkTrader(Trader):
                 if(action=="BUY"):
                     #buy symbol1 with symbol2
                     print("Buying {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
-                    # order = client.order_limit_buy(symbol=self.symbol,quantity=trans_amount,price=price)
+                    order = client.order_limit_buy(symbol=self.symbol,quantity=trans_amount,price=price)
                     self.trade_history.append({"action":"BUY","amount":trans_amount,"price":price,"time":int(1000*(time.time()//60*60))})
                     self.statistics["orders_made"] += 1
                     self.statistics["total_trade_qty"] += trans_amount
@@ -482,25 +482,25 @@ class SimpleNetworkTrader(Trader):
                 elif(action=="SELL"):
                     #sell symbol1 for symbol2
                     print("Selling {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
-                    # order = client.order_limit_sell(symbol=self.symbol,quantity=trans_amount,price=price)
+                    order = client.order_limit_sell(symbol=self.symbol,quantity=trans_amount,price=price)
                     self.trade_history.append({"action":"SELL","amount":trans_amount,"price":price,"time":int(1000*(time.time()//60*60))})
                     self.statistics["orders_made"] += 1
                     self.statistics["total_trade_qty"] += trans_amount
 
                     self.statistics["conversion_rate"] = (self.statistics["orders_made"]-self.statistics["orders_cancelled"])/ (self.statistics["orders_made"]+self.statistics["orders_cancelled"])
                     self.statistics["trade_weight"] = self.statistics["total_trade_qty"]/(self.statistics["orders_made"]+self.statistics["orders_cancelled"])
-
-                # print(order)
             
-            # symbol1_balance, symbol2_balance = self._get_asset_balance()
-            # print("{} Balance: {}".format(self.symbol1,symbol1_balance))
-            # print("{} Balance: {}".format(self.symbol2,symbol2_balance))
+            symbol1_balance, symbol2_balance = self._get_asset_balance()
+            print("{} Balance: {}".format(self.symbol1,symbol1_balance))
+            print("{} Balance: {}".format(self.symbol2,symbol2_balance))
 
     def run(self, *args, **kwargs):
         #run trading algorithm
 
-        filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
-        network_path = "./trading/networks/simple_network_{}".format(self.symbol)
+        filepath = "../data/{}_1m_run_data.csv".format(self.symbol)
+        filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)),filepath)
+        network_path = "./networks/simple_network_{}".format(self.symbol)
+        network_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),network_path)
         commission = self.taker_commission
 
         #create/update data file
@@ -508,9 +508,9 @@ class SimpleNetworkTrader(Trader):
         start = int(now-(self.timeframe)*60000)
         
         if(os.path.exists(filepath)):
-            self.DataManager.update_historical_data(filepath.format(self.symbol))
+            self.DataManager.update_historical_data(filepath)
         else:
-            self.DataManager.create_historical_data(filepath.format(self.symbol),"1m",start_str=start,end_str=now,limit=1000)
+            self.DataManager.create_historical_data(filepath,"1m",start_str=start,end_str=now,limit=1000)
 
         #load data
         data = self.DataManager.load_data(filepath,cols=[0,4])
@@ -524,35 +524,31 @@ class SimpleNetworkTrader(Trader):
 
         #plug data into network
         prediction = model.predict(input_data)[0,0]
-
-        #make decision based off prediction
         last_close = input_data[0,-1]
 
+        #declare order_object
         order_object = {
             "action": "HOLD",
             "amount": 0,
             "price": 0
         }
 
-        # print(order_object)
-        
-
         sell_price = prediction+self.threshold
         buy_price = prediction-self.threshold
         small_commission = commission*self.min_notional/sell_price
         large_commission = commission*self.min_notional/buy_price
 
-        print('Prediction: ', prediction)
-        print('Last buy price: ', last_close+commission*self.min_notional/(prediction-self.threshold))
-        print('Last sell price: ', last_close-commission*self.min_notional/(prediction+self.threshold))
-        print('Buy Price: ', buy_price)
-        print("Sell Price: ", sell_price)
+        # print('Prediction: ', prediction)
+        # print('Last buy price: ', last_close+commission*self.min_notional/(prediction-self.threshold))
+        # print('Last sell price: ', last_close-commission*self.min_notional/(prediction+self.threshold))
+        # print('Buy Price: ', buy_price)
+        # print("Sell Price: ", sell_price)
 
         # try:
         if(buy_price>last_close+large_commission):
             order_object["action"] = "BUY"
             order_object["amount"] = self.min_notional/(buy_price)
-            max_amount = self._get_amount_at_price(order_object["action"],buy_price)
+            # max_amount = self._get_amount_at_price(order_object["action"],buy_price)
             order_object["price"] = buy_price
             # print(order_object)
             # if(order_object["amount"]<max_amount):
@@ -562,7 +558,7 @@ class SimpleNetworkTrader(Trader):
         elif(sell_price<last_close-small_commission):
             order_object["action"] = "SELL"
             order_object["amount"] = self.min_notional/(sell_price)
-            max_amount = self._get_amount_at_price(order_object["action"],sell_price)
+            # max_amount = self._get_amount_at_price(order_object["action"],sell_price)
             order_object["price"] = sell_price
             # print(order_object)
             # if(order_object["amount"]<max_amount):
@@ -630,10 +626,10 @@ if __name__ == "__main__":
 
     simple = SimpleNetworkTrader(client, config)
     
-    simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
-    simple.train_network_v2("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
-    simple.evaluate_trader_v2("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
-    # simple.run()
+    # simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
+    # simple.train_network_v2("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
+    # simple.evaluate_trader_v2("../data/"+symbol+"_1m_saved.csv","./networks/simple_network_"+symbol)
+    simple.run()
 
 
     

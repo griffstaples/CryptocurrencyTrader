@@ -275,7 +275,6 @@ class SimpleLinearTrader(Trader):
                     print("Selling {} {} for {} {}".format(trans_amount,self.symbol1,trans_amount*price,self.symbol2))
                     order = client.order_limit_sell(symbol=self.symbol,quantity=trans_amount,price=price)
 
-                print(order)
             
             symbol1_balance, symbol2_balance = self._get_asset_balance()
             print("{} Balance: {}".format(self.symbol1,symbol1_balance))
@@ -286,7 +285,8 @@ class SimpleLinearTrader(Trader):
         # run trading algorithm
 
         #define constants
-        filepath = "./data/{}_1m_run_data.csv".format(self.symbol)
+        filepath = "../data/{}_1m_run_data.csv".format(self.symbol)
+        filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)),filepath)
         commission = self.taker_commission
 
         #create/update data file
@@ -294,9 +294,9 @@ class SimpleLinearTrader(Trader):
         start = int(now-(self.timeframe)*60000)
 
         if(os.path.exists(filepath)):
-            self.DataManager.update_historical_data(filepath.format(self.symbol))
+            self.DataManager.update_historical_data(filepath)
         else:
-            self.DataManager.create_historical_data(filepath.format(self.symbol),"1m",start_str=start,end_str=now,limit=1000)
+            self.DataManager.create_historical_data(filepath,"1m",start_str=start,end_str=now,limit=1000)
         
 
         #load data
@@ -322,12 +322,12 @@ class SimpleLinearTrader(Trader):
         if(prediction>last_close+commission_amount+self.threshold):
             print("{}: Buying".format(self.name))
             order_object["action"] = "BUY"
-            self.place_market_order(order_object)
+            self.place_limit_order(order_object)
 
         elif(prediction<last_close-commission_amount-self.threshold):
             print("{}: Selling".format(self.name))
             order_object["action"] = "SELL"
-            self.place_market_order(order_object)
+            self.place_limit_order(order_object)
         
         else:
             print("{}: No order placed".format(self.name))
@@ -358,9 +358,6 @@ class SimpleLinearTrader(Trader):
         return 0
         
         
-
-
-
 if __name__ == "__main__":
     api_key = os.environ["binance_api"]
     api_secret = os.environ["binance_secret"]
@@ -375,8 +372,9 @@ if __name__ == "__main__":
 
     simple = SimpleLinearTrader(client, config)
     
-    simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
-    simple.evaluate_trader_v2("../data/"+symbol+"_1m_saved.csv")
+    # simple.DataManager.update_historical_data("../data/"+symbol+"_1m_saved.csv",limit=1000)
+    # simple.evaluate_trader_v2("../data/"+symbol+"_1m_saved.csv")
 
+    simple.run()
 
 

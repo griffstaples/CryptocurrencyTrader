@@ -58,7 +58,6 @@ if __name__ == "__main__":
     Manager.add_trader(simple_linear_config1)
     Manager.add_trader(simple_net_config1)
 
-
     # Run traders
     while True:
         try:

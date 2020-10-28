@@ -166,10 +166,10 @@ class Trader(object):
 
     def _on_close(self, *args, **kwargs):
         self.statistics["end_time"] = time.time()
-        with open(os.path.join(self._get_script_path(),'./stats/run_stats.json'),"w") as json_file:  
+        with open(os.path.join(self._get_script_path(),'stats/run_stats.json'),"w") as json_file:  
             json.dump(self.statistics,json_file,indent=4)
-        with open(os.path.join(self._get_script_path(),'./trade_history/trades.json'),"w") as json_file:
-            json.dump(self.trade_history,json_file,indent=4)
+        # with open(os.path.join(self._get_script_path(),'trade_history/trades.json'),"w") as json_file:
+        #     json.dump(self.trade_history,json_file,indent=4)
 
     def _get_script_path(self):
         return os.path.dirname(os.path.realpath(__file__))
