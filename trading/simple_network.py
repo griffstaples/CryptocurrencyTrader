@@ -11,12 +11,6 @@ Copyright (c) 2020 Griffin Staples
 
 import sys
 import os
-sys.path.append(os.path.abspath("../data_management/"))
-sys.path.append(os.path.abspath("../local_packages/python_binance_master/binance/"))
-sys.path.append(os.path.abspath("./"))
-sys.path.append(os.path.abspath("../"))
-sys.path.append(os.path.abspath("./data"))
-
 import numpy as np
 import time
 import matplotlib.pyplot as plt
@@ -30,6 +24,11 @@ from scipy.stats import binom
 import tensorflow as tf
 tf.config.run_functions_eagerly(True)
 
+sys.path.append(os.path.abspath("../data_management/"))
+sys.path.append(os.path.abspath("../local_packages/python_binance_master/binance/"))
+sys.path.append(os.path.abspath("./"))
+sys.path.append(os.path.abspath("../"))
+sys.path.append(os.path.abspath("./data"))
 
 from Trader import Trader
 from local_packages.python_binance_master.binance.client import Client
